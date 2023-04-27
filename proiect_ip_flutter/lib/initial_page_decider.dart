@@ -1,32 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:proiect_ip_flutter/bonded_device_page.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:proiect_ip_flutter/error_page.dart';
 import 'package:proiect_ip_flutter/log_in_page.dart';
+import 'package:proiect_ip_flutter/provider.dart';
+import 'home_page.dart';
 
-class InitialPageDecider extends StatelessWidget {
+class InitialPageDecider extends ConsumerWidget {
   const InitialPageDecider({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            const Text('Initial Page Decider'),
-            IconButton(
-                onPressed: () {
-                  Navigator.of(context).push(MaterialPageRoute(
-                      builder: (context) => const LogInPage()));
-                },
-                icon: const Icon(Icons.one_k)),
-            IconButton(
-                onPressed: () {
-                  Navigator.of(context).push(MaterialPageRoute(
-                      builder: (context) => const SelectBondedDevice()));
-                },
-                icon: const Icon(Icons.two_k))
-          ],
-        ),
-      ),
-    );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final _authState = ref.watch(authStateProvider);
+    return _authState.when(
+        data: (data) {
+          if (data != null) return const HomePage();
+          return const LogInPage();
+        },
+        loading: () => const CircularProgressIndicator(),
+        error: (e, trace) => const ErrorPage());
   }
 }
