@@ -83,8 +83,9 @@ class _OrderStatePageState extends State<OrderStatePage> {
               child: Center(
                 child: ElevatedButton.icon(
                   onPressed: () async {
-                    final docUser =
-                    FirebaseFirestore.instance.collection('robot').doc('crashID');
+                    final docUser = FirebaseFirestore.instance
+                        .collection('robot')
+                        .doc('crashID');
                     final json = {
                       'crash': 'Crash',
                     };
@@ -114,8 +115,7 @@ class _OrderStatePageState extends State<OrderStatePage> {
               child: ElevatedButton.icon(
                 onPressed: () {
                   Navigator.of(context).push(MaterialPageRoute(
-                      builder: (context) =>
-                          OrdersPage(server: widget.server)));
+                      builder: (context) => OrdersPage(server: widget.server)));
                 },
                 icon: const Icon(
                   Icons.arrow_back,

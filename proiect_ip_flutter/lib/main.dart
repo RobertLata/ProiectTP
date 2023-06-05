@@ -5,7 +5,6 @@ import 'package:proiect_ip_flutter/authentication/login_page.dart';
 import 'package:proiect_ip_flutter/device_request.dart';
 import 'package:proiect_ip_flutter/utils/utils.dart';
 
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -37,19 +36,19 @@ class MainPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return const Center(child: Text('Something went wrong!'));
-        } else if (snapshot.hasData) {
-          return const DeviceRequestWidget();
-        } else {
-          return const LoginPage();
-        }
-      },
-    ),
-  );
+        body: StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return const Center(child: Text('Something went wrong!'));
+            } else if (snapshot.hasData) {
+              return const DeviceRequestWidget();
+            } else {
+              return const LoginPage();
+            }
+          },
+        ),
+      );
 }

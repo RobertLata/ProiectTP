@@ -28,7 +28,8 @@ class NoAvailability extends StatelessWidget {
                   Navigator.of(context).pop();
                 },
                 style: TextButton.styleFrom(
-                    foregroundColor: Colors.white, backgroundColor: Colors.blue),
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.blue),
                 child: const Text('Go back'),
               )),
             ),

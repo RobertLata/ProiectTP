@@ -65,10 +65,15 @@ class _OrdersPageState extends State<OrdersPage> {
                             height: 100,
                             width: 100,
                           )),
-                      !didPressOnOrder ? const Padding(
-                        padding: EdgeInsets.only(left: 20.0),
-                        child: Text('Orders: ', style: TextStyle(fontSize: 24),),
-                      ) : const SizedBox(),
+                      !didPressOnOrder
+                          ? const Padding(
+                              padding: EdgeInsets.only(left: 20.0),
+                              child: Text(
+                                'Orders: ',
+                                style: TextStyle(fontSize: 24),
+                              ),
+                            )
+                          : const SizedBox(),
                       !didPressOnOrder
                           ? ListView.builder(
                               shrinkWrap: true,
