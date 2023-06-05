@@ -5,9 +5,36 @@ class NoAvailability extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Colors.orange,
-      body: SafeArea(child: Text('No availability')),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            const Align(
+                alignment: Alignment.topRight,
+                child: Image(
+                  image: AssetImage('images/MedX.jpeg'),
+                  height: 100,
+                  width: 100,
+                )),
+            const Center(
+              child: Text('WayR0 is not available at the moment'),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 40.0),
+              child: Center(
+                  child: TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                style: TextButton.styleFrom(
+                    foregroundColor: Colors.white, backgroundColor: Colors.blue),
+                child: const Text('Go back'),
+              )),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
