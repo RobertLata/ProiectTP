@@ -1,9 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:proiect_ip_flutter/chat_page.dart';
 import 'package:proiect_ip_flutter/main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:proiect_ip_flutter/robot_availability_page.dart';
 import 'package:proiect_ip_flutter/models/order.dart';
 
 class OrdersPage extends StatefulWidget {
@@ -105,10 +105,13 @@ class _OrdersPageState extends State<OrdersPage> {
                                 onPressed: () {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          RobotAvailabilityPage(
+                                      builder: (context) => ChatPage(
                                         server: widget.server,
                                         patientId: _patientId,
+                                        patientLastName: patients[selectedIndex]
+                                            .patientLastName,
+                                        medicineName:
+                                            patients[selectedIndex].medicine,
                                       ),
                                     ),
                                   );
@@ -154,44 +157,47 @@ class _OrdersPageState extends State<OrdersPage> {
           .map((doc) => TreatmentOrder.fromJson(doc.data()))
           .toList());
 
-  Widget _buildPatientInfo(TreatmentOrder patient, int index) => !patient
-          .isOrderFinished
-      ? Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: InkWell(
-            onTap: () {
-              setState(() {
-                selectedIndex = index;
-                didPressOnOrder = true;
-                _patientId = patient.id;
-              });
-            },
-            child: Container(
-              color: Colors.blue,
-              width: double.infinity,
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  Text(
-                    "First name: ${patient.patientFirstName}",
-                    style: const TextStyle(color: Colors.white, fontSize: 20),
-                  ),
-                  Text(
-                    "Last name: ${patient.patientLastName}",
-                    style: const TextStyle(color: Colors.white, fontSize: 20),
-                  ),
-                  Text(
-                    "Bed number: ${patient.bedNumber}",
-                    style: const TextStyle(color: Colors.white, fontSize: 20),
-                  ),
-                  Text(
-                    "Is order finished: ${patient.isOrderFinished}",
-                    style: const TextStyle(color: Colors.white, fontSize: 20),
-                  )
-                ],
-              ),
+  Widget _buildPatientInfo(TreatmentOrder patient, int index) {
+    if (!patient.isOrderFinished) {
+      return Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              selectedIndex = index;
+              didPressOnOrder = true;
+              _patientId = patient.id;
+            });
+          },
+          child: Container(
+            color: Colors.blue,
+            width: double.infinity,
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              children: [
+                Text(
+                  "First name: ${patient.patientFirstName}",
+                  style: const TextStyle(color: Colors.white, fontSize: 20),
+                ),
+                Text(
+                  "Last name: ${patient.patientLastName}",
+                  style: const TextStyle(color: Colors.white, fontSize: 20),
+                ),
+                Text(
+                  "Bed number: ${patient.bedNumber}",
+                  style: const TextStyle(color: Colors.white, fontSize: 20),
+                ),
+                Text(
+                  "Is order finished: ${patient.isOrderFinished}",
+                  style: const TextStyle(color: Colors.white, fontSize: 20),
+                )
+              ],
             ),
           ),
-        )
-      : const SizedBox();
+        ),
+      );
+    } else {
+      return const SizedBox();
+    }
+  }
 }

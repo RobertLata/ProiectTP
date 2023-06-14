@@ -20,6 +20,9 @@ class NoAvailability extends StatelessWidget {
             const Center(
               child: Text('WayR0 is not available at the moment'),
             ),
+            const Center(
+              child: Text('Remote mode active'),
+            ),
             Padding(
               padding: const EdgeInsets.only(top: 40.0),
               child: Center(

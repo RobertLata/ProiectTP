@@ -8,289 +8,212 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:proiect_ip_flutter/order_state_page.dart';
 
+import 'no_disponibility.dart';
+
 class ChatPage extends StatefulWidget {
   final BluetoothDevice server;
   final String patientId;
+  final String patientLastName;
+  final String medicineName;
 
-  const ChatPage({Key? key, required this.server, required this.patientId})
+  const ChatPage(
+      {Key? key,
+      required this.server,
+      required this.patientId,
+      required this.patientLastName,
+      required this.medicineName})
       : super(key: key);
 
   @override
   State<ChatPage> createState() => _ChatPage();
 }
 
-class Message {
-  int whom;
-  String text;
-
-  Message(this.whom, this.text);
-}
-
 class _ChatPage extends State<ChatPage> {
-  static const clientID = 0;
-  BluetoothConnection? connection;
+  BluetoothConnection? deviceConnection;
 
-  List<Message> messages = <Message>[];
   String _messageBuffer = '';
 
-  final TextEditingController textEditingController = TextEditingController();
+  bool didPressUp = false;
+  bool didPressDown = false;
+  bool didPressLeft = false;
+  bool didPressRight = false;
 
-  bool isConnecting = true;
-  bool get isConnected => connection != null && connection!.isConnected;
-
-  bool isDisconnecting = false;
   final user = FirebaseAuth.instance.currentUser;
 
   @override
   void initState() {
     super.initState();
-    BluetoothConnection.toAddress(widget.server.address).then((connection) {
-      print('Connected to the device');
-      connection = connection;
-      setState(() {
-        isConnecting = false;
-        isDisconnecting = false;
-      });
-
-      connection.input?.listen(_onDataReceived).onDone(() {
-        // Example: Detect which side closed the connection
-        // There should be `isDisconnecting` flag to show are we are (locally)
-        // in middle of disconnecting process, should be set before calling
-        // `dispose`, `finish` or `close`, which all causes to disconnect.
-        // If we except the disconnection, `onDone` should be fired as result.
-        // If we didn't except this (no flag set), it means closing by remote.
-        if (isDisconnecting) {
-          print('Disconnecting locally!');
-        } else {
-          print('Disconnected remotely!');
-        }
-        if (mounted) {
-          setState(() {});
-        }
-      });
-    }).catchError((error) {
-      print('Cannot connect, exception occurred');
-      print(error);
-    });
-
     _addUserEmail();
   }
 
   @override
   void dispose() {
-    // Avoid memory leak (`setState` after dispose) and disconnect
-    if (isConnected) {
-      isDisconnecting = true;
-      connection?.dispose();
-      connection = null;
-    }
-
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Align(
-                  alignment: Alignment.topRight,
-                  child: Image(
-                    image: AssetImage('images/MedX.jpeg'),
-                    height: 100,
-                    width: 100,
-                  )),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Text(
-                  'Welcome,\n${user!.email!}',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 18),
-                ),
-              ),
-              const SizedBox(
-                height: 50,
-              ),
-              Center(
-                child: ArrowPad(
-                  padding: const EdgeInsets.all(8.0),
-                  height: 220,
-                  width: 220,
-                  iconColor: Colors.white,
-                  innerColor: Colors.blue,
-                  outerColor: Colors.green,
-                  splashColor: Colors.greenAccent,
-                  hoverColor: Colors.green,
-                  onPressed: (direction) {
-                    if (direction == PressDirection.up) {
-                      return _sendMessage('N');
-                    } else if (direction == PressDirection.down) {
-                      return _sendMessage('S');
-                    } else if (direction == PressDirection.left) {
-                      return _sendMessage('V');
-                    } else if (direction == PressDirection.right) {
-                      return _sendMessage('E');
-                    }
-                  },
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20.0, horizontal: 20.0),
-                child: Text(
-                  'Reports:',
-                  style: TextStyle(fontSize: 18),
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      final docPatient = FirebaseFirestore.instance
-                          .collection('orders')
-                          .doc(widget.patientId);
-                      docPatient.update({'isOrderFinished': true});
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                            builder: (context) => OrderStatePage(
-                                isOrderFinished: true, server: widget.server)),
-                      );
-                    },
-                    style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: Colors.green),
-                    child: const Text('Finished'),
-                  ),
-                  const SizedBox(
-                    width: 50,
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      final docPatient = FirebaseFirestore.instance
-                          .collection('orders')
-                          .doc(widget.patientId);
-                      docPatient.update({'isOrderFinished': false});
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                            builder: (context) => OrderStatePage(
-                                isOrderFinished: false, server: widget.server)),
-                      );
-                    },
-                    style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: Colors.red),
-                    child: const Text('Unfinished'),
-                  ),
-                ],
-              ),
-              Row(
-                children: <Widget>[
-                  Flexible(
-                    child: Container(
-                      margin: const EdgeInsets.only(left: 16.0),
-                      child: TextField(
-                        style: const TextStyle(fontSize: 15.0),
-                        controller: textEditingController,
-                        decoration: InputDecoration.collapsed(
-                          hintText: isConnecting
-                              ? 'Wait until connected...'
-                              : isConnected
-                                  ? 'Type your message...'
-                                  : 'Chat got disconnected',
-                          hintStyle: const TextStyle(color: Colors.grey),
+        backgroundColor: Colors.white,
+        body: FutureBuilder<bool>(
+            future: _isRobotAvailable(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const Center(
+                  child: Text('Something went wrong. Please try again later!'),
+                );
+              } else if (snapshot.hasData) {
+                return snapshot.data == true
+                    ? const NoAvailability()
+                    : SafeArea(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Align(
+                                  alignment: Alignment.topRight,
+                                  child: Image(
+                                    image: AssetImage('images/MedX.jpeg'),
+                                    height: 100,
+                                    width: 100,
+                                  )),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20.0),
+                                child: Text(
+                                  'Welcome,\n${user!.email!}',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 18),
+                                ),
+                              ),
+                              const SizedBox(
+                                height: 50,
+                              ),
+                              Center(
+                                child: ArrowPad(
+                                  padding: const EdgeInsets.all(8.0),
+                                  height: 220,
+                                  width: 220,
+                                  iconColor: Colors.white,
+                                  innerColor: Colors.blue,
+                                  outerColor: Colors.green,
+                                  splashColor: Colors.greenAccent,
+                                  hoverColor: Colors.green,
+                                  onPressed: (direction) {
+                                    if (direction == PressDirection.up) {
+                                      didPressUp = true;
+                                      return _sendMessage('n');
+                                    } else if (direction ==
+                                        PressDirection.down) {
+                                      didPressDown = true;
+                                      return _sendMessage('s');
+                                    } else if (direction ==
+                                        PressDirection.left) {
+                                      didPressLeft = true;
+                                      return _sendMessage('v');
+                                    } else if (direction ==
+                                        PressDirection.right) {
+                                      didPressRight = true;
+                                      return _sendMessage('e');
+                                    }
+                                  },
+                                ),
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(
+                                    vertical: 20.0, horizontal: 20.0),
+                                child: Text(
+                                  'Reports:',
+                                  style: TextStyle(fontSize: 18),
+                                ),
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  TextButton(
+                                    onPressed: () {
+                                      final docPatient = FirebaseFirestore
+                                          .instance
+                                          .collection('orders')
+                                          .doc(widget.patientId);
+                                      docPatient
+                                          .update({'isOrderFinished': true});
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                OrderStatePage(
+                                                    isOrderFinished: true,
+                                                    server: widget.server)),
+                                      );
+                                    },
+                                    style: TextButton.styleFrom(
+                                        foregroundColor: Colors.white,
+                                        backgroundColor: Colors.green),
+                                    child: const Text('Finished'),
+                                  ),
+                                  const SizedBox(
+                                    width: 50,
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      final docPatient = FirebaseFirestore
+                                          .instance
+                                          .collection('orders')
+                                          .doc(widget.patientId);
+                                      docPatient
+                                          .update({'isOrderFinished': false});
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                OrderStatePage(
+                                                    isOrderFinished: false,
+                                                    server: widget.server)),
+                                      );
+                                    },
+                                    style: TextButton.styleFrom(
+                                        foregroundColor: Colors.white,
+                                        backgroundColor: Colors.red),
+                                    child: const Text('Unfinished'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                        enabled: isConnected,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.all(8.0),
-                    child: IconButton(
-                        icon: const Icon(Icons.send),
-                        onPressed: isConnected
-                            ? () => _sendMessage(textEditingController.text)
-                            : null),
-                  ),
-                ],
-              )
-            ],
-          ),
-        ),
-      ),
-    );
+                      );
+              }
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }));
   }
 
   void _sendMessage(String text) {
     text = text.trim();
-    textEditingController.clear();
 
     if (text.isNotEmpty) {
-      try {
-        connection?.output.add(Uint8List.fromList(utf8.encode("$text\r\n")));
-        connection?.output.allSent.then(
-          (_) => setState(() {
-            messages.add(Message(clientID, text));
-          }),
-        );
-      } catch (e) {
-        // Ignore error, but notify state
-        setState(() {});
-      }
-    }
-  }
+      if (text != 'G;') {
+        try {
+          print('Sent data: ${Uint8List.fromList(utf8.encode("$text\r\n"))}');
 
-  void _onDataReceived(Uint8List data) {
-    // Allocate buffer for parsed data
-    int backspacesCounter = 0;
-    data.forEach((byte) {
-      if (byte == 8 || byte == 127) {
-        backspacesCounter++;
-      }
-    });
-    Uint8List buffer = Uint8List(data.length - backspacesCounter);
-    int bufferIndex = buffer.length;
-
-    // Apply backspace control character
-    backspacesCounter = 0;
-    for (int i = data.length - 1; i >= 0; i--) {
-      if (data[i] == 8 || data[i] == 127) {
-        backspacesCounter++;
+          deviceConnection?.output
+              .add(Uint8List.fromList(utf8.encode("$text\r\n")));
+          deviceConnection?.output.allSent;
+        } catch (e) {
+          print(e.toString());
+        }
       } else {
-        if (backspacesCounter > 0) {
-          backspacesCounter--;
-        } else {
-          buffer[--bufferIndex] = data[i];
+        try {
+          print('Sent data: ${Uint8List.fromList(utf8.encode("$text"))}');
+
+          deviceConnection?.output.add(Uint8List.fromList(utf8.encode(text)));
+          deviceConnection?.output.allSent;
+        } catch (e) {
+          print(e.toString());
         }
       }
-    }
-
-    // Create message if there is new line character
-    String dataString = String.fromCharCodes(buffer);
-    int index = buffer.indexOf(13);
-    if (~index != 0) {
-      setState(() {
-        messages.add(
-          Message(
-            1,
-            backspacesCounter > 0
-                ? _messageBuffer.substring(
-                    0, _messageBuffer.length - backspacesCounter)
-                : _messageBuffer + dataString.substring(0, index),
-          ),
-        );
-        _messageBuffer = dataString.substring(index);
-      });
-    } else {
-      _messageBuffer = (backspacesCounter > 0
-          ? _messageBuffer.substring(
-              0, _messageBuffer.length - backspacesCounter)
-          : _messageBuffer + dataString);
     }
   }
 
@@ -302,5 +225,118 @@ class _ChatPage extends State<ChatPage> {
     };
 
     await docUser.set(json);
+  }
+
+  Future<bool> _isRobotAvailable() async {
+    bool fieldValue = true;
+    String isOrderFinishedReceived = '';
+    print('Address server is: ${widget.server.address}');
+    try {
+      DocumentSnapshot documentSnapshot = await FirebaseFirestore.instance
+          .collection('robot') // Replace with your collection name
+          .doc('robotID') // Replace with your document ID
+          .get();
+
+      if (documentSnapshot.exists) {
+        // Document exists
+        fieldValue = documentSnapshot.get('isRemote');
+        // Use the field value as needed
+        print('Field value: $fieldValue');
+      } else {
+        // Document does not exist
+        print('Document does not exist');
+      }
+    } catch (error) {
+      print('Error accessing field value: $error');
+    }
+
+    FlutterBluetoothSerial.instance.state.then((state) {
+      print("Current Bluetooth state: $state");
+      if (state == BluetoothState.STATE_ON) {
+        // Bluetooth is enabled, proceed with connection
+        connectToDevice(isOrderFinishedReceived, fieldValue);
+      } else {
+        // Bluetooth is not enabled, request the user to enable it
+        FlutterBluetoothSerial.instance.requestEnable().then((_) {
+          connectToDevice(isOrderFinishedReceived, fieldValue);
+        });
+      }
+    });
+
+    FlutterBluetoothSerial.instance
+        .onStateChanged()
+        .listen((BluetoothState state) {
+      print("Bluetooth state changed to: $state");
+      if (state == BluetoothState.STATE_ON) {
+        // Bluetooth is enabled, proceed with connection
+        connectToDevice(isOrderFinishedReceived, fieldValue);
+      }
+    });
+
+    return fieldValue;
+  }
+
+  void connectToDevice(String isOrderFinishedReceived, bool fieldValue) async {
+    try {
+      BluetoothConnection connection =
+          await BluetoothConnection.toAddress(widget.server.address);
+      print('Connected to the device');
+
+      deviceConnection = connection;
+
+      connection.input?.listen((Uint8List data) {
+        // send data
+        connection.output.add(Uint8List.fromList(utf8.encode("G;")));
+        connection.output.allSent;
+        print('Sent G;');
+        if(didPressUp == true) {
+          connection.output.add(Uint8List.fromList(utf8.encode("n")));
+          connection.output.allSent;
+          print('Sent n');
+        }
+        if(didPressDown == true) {
+          connection.output.add(Uint8List.fromList(utf8.encode("s")));
+          connection.output.allSent;
+          print('Sent s');
+        }
+        if(didPressLeft == true) {
+          connection.output.add(Uint8List.fromList(utf8.encode("v")));
+          connection.output.allSent;
+          print('Sent v');
+        }
+        if(didPressRight == true) {
+          connection.output.add(Uint8List.fromList(utf8.encode("e")));
+          connection.output.allSent;
+          print('Sent e');
+        }
+        // receive data
+        String incomingData = '';
+        print('Data incoming: ${ascii.decode(data)}');
+        incomingData = ascii.decode(data);
+        if (incomingData.contains('8')) {
+          final docPatient = FirebaseFirestore.instance
+              .collection('orders')
+              .doc(widget.patientId);
+          docPatient.update({'isOrderFinished': true});
+          print('Am modificat in db');
+        }
+
+        if (ascii.decode(data).contains('!')) {
+          connection.finish(); // Closing connection
+          print('Disconnecting by local host');
+        }
+      }).onDone(() {
+        print('Disconnected by remote request');
+      });
+    } catch (exception) {
+      print('Cannot connect, exception occurred: $exception');
+    }
+    if (fieldValue == false) {
+      _sendMessage('G;');
+      print('G;');
+    } else {
+      _sendMessage('A;');
+      print('A;');
+    }
   }
 }
